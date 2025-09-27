@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Grid3X3, List, ShoppingCart, BarChart3, Award } from 'lucide-react';
+import { Grid3X3, List, ShoppingCart, BarChart3, Award, ChartNoAxesCombined } from 'lucide-react';
 
 export default function Header({ currentPage, setCurrentPage }) {
   const navigate = useNavigate();
@@ -10,7 +10,8 @@ export default function Header({ currentPage, setCurrentPage }) {
     { key: 'watchlist', label: 'Watchlist', icon: List },
     { key: 'orders', label: 'Orders', icon: ShoppingCart },
     { key: 'portfolio', label: 'Portfolio', icon: BarChart3 },
-    { key: 'leaderboard', label: 'Leaderboard', icon: Award }
+    { key: 'leaderboard', label: 'Leaderboard', icon: Award },
+    { key: 'Stockpage', label: 'Stockpage', icon: ChartNoAxesCombined}
   ];
 
   const [loggedIn, setLoggedIn] = useState(false);
@@ -40,10 +41,14 @@ export default function Header({ currentPage, setCurrentPage }) {
     fetchProfile();
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async() => {
     // Clear the cookie by setting its expiration date to the past
-    document.cookie = 'yourTokenCookieName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/login;';
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
+      method: "GET",
+      credentials: "include" // important so cookies are sent
+    });
 
+    const data = await res.json();
     // Update the application's state
     setLoggedIn(false);
 

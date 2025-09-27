@@ -8,16 +8,19 @@ import { ensureAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', ensureAuth, async (req, res) => {
-    try{
-        const positions = await Position.find({ user: req.user.id });
-        const user = await User.findById(req.user.id).select('cash');
-        res.json({ positions, cash: user.cash });
-    }catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error while fetching portfolio.' });
+router.get("/", ensureAuth, async (req, res) => {
+    try {
+      const positions = await Position.find({ user: req.user.id });
+      const user = await User.findById(req.user.id).select("cash");
+  
+      if (!user) return res.status(404).json({ message: "User not found" });
+  
+      res.json({ positions, cash: user.cash });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error while fetching portfolio." });
     }
-});
+  });
 
 router.post('/buy', ensureAuth, async (req, res) => {
     const {symbol,quantity} = req.body;

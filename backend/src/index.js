@@ -10,7 +10,7 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import marketRoutes from "./routes/market.js";
 import watchlistRoutes from "./routes/watchlist.js";
-import portfolioRoutes from './routes/portfolio.js';
+import portfolioRoutes from "./routes/portfolio.js"
 import ordersRoutes from './routes/orders.js';
 import leaderboardRoutes from './routes/leaderboard.js';
 import { WebSocketServer } from 'ws'; // ✅ Import WebSocketServer
@@ -180,6 +180,7 @@ app.get("/profile", (req, res) => {
     res.json({
       name: decoded.name,
       email: decoded.email,
+      avatar: decoded.avatar,
     });
   } catch (err) {
     res.status(401).json({ error: "Invalid or expired token" });

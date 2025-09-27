@@ -6,7 +6,7 @@ import OrdersPage from "./pages/Orders";
 import PortfolioPage from "./pages/Portfolio";
 import LeaderboardPage from "./pages/LeaderBoard";
 import Login from "./pages/Login"; // Your login component
-
+import StockDetailPage from "./pages/stockdetail";
 // ---------------- Protected Route ----------------
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
@@ -138,6 +138,14 @@ const router = createBrowserRouter([
         <Login />
       </PublicRoute>
     ),
+  },
+  {
+    path: "/Stockpage",
+    element: (
+            <ProtectedRoute>
+          <StockDetailPage />
+      </ProtectedRoute>
+    )
   },
   {
     path: "*",
