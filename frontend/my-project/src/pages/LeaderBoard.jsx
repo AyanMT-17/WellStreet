@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, Trophy, TrendingUp, Globe, Award } from 'lucide-react';
 import Header from '../components/Header';
 
 export default function LeaderboardPage() {
   const [currentPage, setCurrentPage] = useState('leaderboard');
-
-  const leaderboardData = [
+  const [leaderboardData, setleaderboardData] = useState([]);
+  const eaderboardData = [
     {
       rank: 1,
       username: 'TraderPro',
@@ -44,6 +44,27 @@ export default function LeaderboardPage() {
     }
   };
 
+  async function fetchLeaderboard() {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/leaderboard`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log('Leaderboard data:', data);
+    setleaderboardData(data || []);
+
+  } catch (err) {
+    console.error('Error fetching leaderboard:', err);
+    // Optionally set an error state here to display in the UI
+  }
+}
+useEffect(() => {
+  fetchLeaderboard();
+}, []);
+
   return (
     <div className="min-h-screen bg-yellow-200">
       <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
@@ -74,7 +95,7 @@ export default function LeaderboardPage() {
               </div>
             </div>
             <div className="mb-1">
-              <span className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-600 bg-clip-text text-transparent">1,247</span>
+              <span className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-600 bg-clip-text text-transparent">{leaderboardData.length}</span>
             </div>
             <div className="text-sm text-amber-600">Active this month</div>
           </div>
@@ -148,16 +169,16 @@ export default function LeaderboardPage() {
                     {trader.rank <= 3 ? (
                       <Trophy className="w-5 h-5 text-white" />
                     ) : (
-                      <span className="text-sm font-bold text-white">#{trader.rank}</span>
+                      <span className="text-sm font-bold text-white">#{index+1}</span>
                     )}
                   </div>
                   <div>
-                    <div className="font-semibold text-amber-900">{trader.username}</div>
-                    <div className="text-sm text-amber-700">{trader.trades} trades</div>
+                    <div className="font-semibold text-amber-900">{trader.name}</div>
+                    <div className="text-sm text-amber-700">{trader.portfolioValue} Value</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-amber-600">{trader.pnl}</div>
+                  <div className="font-semibold text-amber-600">{trader.percentageGain}</div>
                   <div className="text-sm text-amber-700">{trader.winRate} Win Rate</div>
                 </div>
               </div>

@@ -153,8 +153,10 @@ export default function TradingDashboard() {
         }
     }
 
+
     async function fetchSparklineData(symbol) {
         try {
+
             const response = await fetch(`${import.meta.env.VITE_API_URL}/market/ohlc/${symbol}`, {
                 credentials: 'include'
             });
