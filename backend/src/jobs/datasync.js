@@ -5,8 +5,16 @@ import OHLC from '../models/OHLC.js';
 
 // A list of important NIFTY 50 stocks to track
 const SYMBOLS_TO_TRACK = [
-    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS',
-    'ICICIBANK.NS', 'HINDUNILVR.NS', 'SBIN.NS', 'BAJFINANCE.NS'
+    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS',
+    'BHARTIARTL.NS', 'HINDUNILVR.NS', 'SBIN.NS', 'ITC.NS', 'LT.NS',
+    'BAJFINANCE.NS', 'HCLTECH.NS', 'KOTAKBANK.NS', 'AXISBANK.NS', 'MARUTI.NS',
+    'ASIANPAINT.NS', 'TATASTEEL.NS', 'TITAN.NS', 'SUNPHARMA.NS', 'ULTRACEMCO.NS',
+    'WIPRO.NS', 'TATAMOTORS.NS', 'ADANIENT.NS', 'NESTLEIND.NS', 'M&M.NS',
+    'POWERGRID.NS', 'BAJAJFINSV.NS', 'NTPC.NS', 'JSWSTEEL.NS', 'LTIM.NS',
+    'HDFCLIFE.NS', 'DRREDDY.NS', 'ADANIPORTS.NS', 'HINDALCO.NS', 'TATACONSUM.NS',
+    'CIPLA.NS', 'GRASIM.NS', 'COALINDIA.NS', 'INDUSINDBK.NS', 'BRITANNIA.NS',
+    'EICHERMOT.NS', 'SBILIFE.NS', 'HEROMOTOCO.NS', 'DIVISLAB.NS', 'ONGC.NS',
+    'APOLLOHOSP.NS', 'TECHM.NS', 'BPCL.NS', 'SHRIRAMFIN.NS', 'BAJAJ-AUTO.NS'
 ];
 
 const syncMarketData = async () => {
@@ -23,9 +31,10 @@ const syncMarketData = async () => {
                 // 'Upsert' operation: Update if exists, insert if not.
                 // This prevents duplicate entries.
                 await OHLC.updateOne(
-                    { symbol: symbol, timestamp: bar.date },
+                    { symbol: symbol},
                     {
                         $set: {
+                            timestamp: bar.date,
                             open: bar.open,
                             high: bar.high,
                             low: bar.low,
@@ -44,13 +53,15 @@ const syncMarketData = async () => {
     console.log('Market data sync finished.');
 };
 
-// Schedule the job to run at 8:00 PM every day (IST)
+// Schedule the job to run at 5:12 AM every day (IST)
 // Cron syntax: 'minute hour day-of-month month day-of-week'
 const scheduleDataSync = () => {
-    cron.schedule('0 20 * * *', syncMarketData, {
-        timezone: "Asia/Kolkata"
-    });
-    console.log('Scheduler started. Data sync will run daily at 8:00 PM IST.');
+    // Correct cron schedule for 5:10 AM
+ cron.schedule('30 6 * * *', syncMarketData, {
+ timezone: "Asia/Kolkata"
+ });
+ // Updated the log message to match the new time
+ console.log('Scheduler started. Data sync will run daily at 6:30 AM IST.');
 };
 
 export default scheduleDataSync;

@@ -1,7 +1,6 @@
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import DashboardPage from "./pages/Dashboard";
-import WatchListPage from "./pages/WatchList";
 import OrdersPage from "./pages/Orders";
 import PortfolioPage from "./pages/Portfolio";
 import LeaderboardPage from "./pages/LeaderBoard";
@@ -100,14 +99,6 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/watchlist",
-    element: (
-      <ProtectedRoute>
-        <WatchListPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
     path: "/orders",
     element: (
       <ProtectedRoute>
@@ -142,8 +133,8 @@ const router = createBrowserRouter([
   {
     path: "/Stockpage",
     element: (
-            <ProtectedRoute>
-          <StockDetailPage />
+      <ProtectedRoute>
+        <StockDetailPage />
       </ProtectedRoute>
     )
   },

@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Grid3X3, List, ShoppingCart, BarChart3, Award, ChartNoAxesCombined } from 'lucide-react';
+import { Grid3X3, ShoppingCart, BarChart3, Award, ChartNoAxesCombined } from 'lucide-react';
 
 export default function Header({ currentPage, setCurrentPage }) {
   const navigate = useNavigate();
   
   const navigationItems = [
     { key: 'dashboard', label: 'Dashboard', icon: Grid3X3 },
-    { key: 'watchlist', label: 'Watchlist', icon: List },
     { key: 'orders', label: 'Orders', icon: ShoppingCart },
     { key: 'portfolio', label: 'Portfolio', icon: BarChart3 },
     { key: 'leaderboard', label: 'Leaderboard', icon: Award },
@@ -42,32 +41,32 @@ export default function Header({ currentPage, setCurrentPage }) {
   }, []);
 
   const handleLogout = async() => {
-    // Clear the cookie by setting its expiration date to the past
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
       method: "GET",
-      credentials: "include" // important so cookies are sent
+      credentials: "include"
     });
 
     const data = await res.json();
-    // Update the application's state
     setLoggedIn(false);
-
-    // Redirect the user
     navigate('/login');
   };
 
   return (
     <>
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm border-b border-amber-200/50">
+      {/* THEME UPDATE: Border color changed from amber to gray */}
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            
             {/* Logo */}
             <div className="flex items-center">
-              <div className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white w-8 h-8 rounded-md flex items-center justify-center font-bold shadow-md">
+              {/* THEME UPDATE: Logo background changed to dark gray */}
+              <div className="bg-gray-800 text-white w-8 h-8 rounded-md flex items-center justify-center font-bold shadow-sm">
                 W
               </div>
-              <span className="ml-2 text-xl font-semibold text-amber-900">WellStreet</span>
+              {/* THEME UPDATE: Logo text changed to dark gray */}
+              <span className="ml-2 text-xl font-semibold text-gray-800">WellStreet</span>
             </div>
             
             {/* Navigation */}
@@ -82,10 +81,11 @@ export default function Header({ currentPage, setCurrentPage }) {
                       setCurrentPage(item.key);
                       navigate(item.key === 'dashboard' ? '/' : `/${item.key}`);
                     }}
-                    className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    // THEME UPDATE: Button styles changed to a neutral gray theme
+                    className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
                       isActive
-                        ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md'
-                        : 'text-amber-700 hover:text-amber-900 hover:bg-amber-50'
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
                     <Icon className="w-4 h-4 mr-2" />
@@ -94,19 +94,20 @@ export default function Header({ currentPage, setCurrentPage }) {
                 );
               })}
             </nav>
-            {/* Sign In Button */}
+
+            {/* Sign In / Logout Button */}
             {loggedIn ? (
-              // This will show if loggedIn is true
               <button
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
+                // THEME UPDATE: Logout button style updated for consistency
+                className="bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors shadow-sm"
                 onClick={handleLogout}
               >
                 Logout
               </button>
             ) : (
-              // This will show if loggedIn is false
               <button
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
+                // THEME UPDATE: Sign In button style updated for consistency
+                className="bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors shadow-sm"
                 onClick={() => navigate("/login")}
               >
                 Sign In
@@ -117,7 +118,8 @@ export default function Header({ currentPage, setCurrentPage }) {
       </header>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-amber-200/50">
+      {/* THEME UPDATE: Border color changed from amber to gray */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200">
         <div className="grid grid-cols-5 gap-1 p-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
@@ -129,10 +131,11 @@ export default function Header({ currentPage, setCurrentPage }) {
                   setCurrentPage(item.key);
                   navigate(item.key === 'dashboard' ? '/' : `/${item.key}`);
                 }}
-                className={`flex flex-col items-center py-2 px-1 rounded-md text-xs transition-all ${
+                // THEME UPDATE: Mobile button styles updated to match desktop
+                className={`flex flex-col items-center justify-center py-2 px-1 rounded-md text-xs transition-colors w-full ${
                   isActive
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md'
-                    : 'text-amber-700 hover:text-amber-900 hover:bg-amber-50'
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <Icon className="w-5 h-5 mb-1" />

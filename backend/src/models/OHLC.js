@@ -2,8 +2,8 @@
 import mongoose from 'mongoose';
 
 const ohlcSchema = new mongoose.Schema({
-    symbol: { type: String, required: true },
     timestamp: { type: Date, required: true },
+    symbol: { type: String, required: true },
     open: { type: Number, required: true },
     high: { type: Number, required: true },
     low: { type: Number, required: true },

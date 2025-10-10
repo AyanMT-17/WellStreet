@@ -17,7 +17,7 @@ import { WebSocketServer } from 'ws'; // ✅ Import WebSocketServer
 import http from 'http';
 import yahooFinance from "yahoo-finance2";
 import scheduleDataSync from './jobs/datasync.js';
-
+import User from "./models/User.js";
 
 dotenv.config();
 const app = express();
@@ -46,12 +46,14 @@ async function updateRealPrices() {
 
     console.log('Fetching real prices for active symbols:', Array.from(activeSubscriptions));
     for (const symbol of activeSubscriptions) {
-        try {
-            const ticker = `${symbol}.NS`;
-            const quote = await yahooFinance.quote(ticker);
+    try {
+      // If symbol already ends with .NS (case-insensitive), don't append it again
+      const ticker = symbol.toUpperCase().endsWith('.NS') ? symbol : `${symbol}.NS`;
+      const quote = await yahooFinance.quote(ticker);
             if (quote && quote.regularMarketPrice) {
                 symbolCache.set(symbol, quote.regularMarketPrice);
             }
+            
         } catch (err) {
             console.error(`Failed to fetch price for ${symbol}:`, err.message);
         }
@@ -111,7 +113,7 @@ function broadcastPrices() {
     if (updates.length === 0) return;
     
     const payload = JSON.stringify({ event: 'price-update', ticks: updates });
-
+    
     // Send the updates to all connected clients
     clients.forEach(client => {
         if (client.connection.readyState === client.connection.OPEN) {
@@ -120,7 +122,7 @@ function broadcastPrices() {
     });
 }
 setInterval(broadcastPrices, 2000);
-setInterval(updateRealPrices, 7200000);
+setInterval(updateRealPrices, 2000000);
 
 // CORS setup (allow frontend to send cookies)
 app.use(

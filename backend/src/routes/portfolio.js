@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import Position from '../models/Positions.js';
 import Order from '../models/Order.js';
 import { ensureAuth } from '../middleware/auth.js';
-
+import OHLC from '../models/OHLC.js';
 const router = express.Router();
 
 router.get("/", ensureAuth, async (req, res) => {
@@ -23,21 +23,28 @@ router.get("/", ensureAuth, async (req, res) => {
   });
 
 router.post('/buy', ensureAuth, async (req, res) => {
-    const {symbol,quantity} = req.body;
+    const { symbol, quantity } = req.body;
     const userId = req.user.id;
 
-    if(!symbol || !quantity || quantity <= 0) {
+    if (!symbol || !quantity || quantity <= 0) {
         return res.status(400).json({ message: 'Valid symbol and quantity are required.' });
     }
 
     try {
-        const ticker = `${symbol.toUpperCase()}.NS`;
-        const quote = await yahooFinance.quote(ticker);
-        const marketPrice = quote.regularMarketPrice;
+        const ticker = `${symbol.toUpperCase()}`;
+        
+       const latestEntry = await OHLC.findOne({ symbol: ticker }).sort({ timestamp: -1 });
 
-        if(!marketPrice) {
-            return res.status(404).json({ message: 'Could not fetch market price for symbol.' });
-        }
+// Access the 'close' property from the found document
+const marketPrice = latestEntry ? latestEntry.close : null;
+
+if (marketPrice !== null) {
+  console.log(`The latest market price for ${ticker} is: ${marketPrice}`);
+} else {
+  console.log(`No data found for ticker: ${ticker}`);
+}
+
+        // The old, incorrect database query for price has been removed.
 
         const totalCost = marketPrice * quantity;
         const user = await User.findById(userId);
@@ -62,7 +69,7 @@ router.post('/buy', ensureAuth, async (req, res) => {
 
         let position = await Position.findOne({ user: userId, symbol: ticker });
 
-        if(position) {
+        if (position) {
             const newTotalQuantity = position.quantity + quantity;
             const newAveragePrice = ((position.averagePrice * position.quantity) + totalCost) / newTotalQuantity;
             position.quantity = newTotalQuantity;

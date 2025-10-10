@@ -13,7 +13,7 @@ export default async function getGroqChatCompletion(symbol) {
     messages: [
       {
         role: "user",
-        content: "Find me the ticker symbol for the company " + symbol + " in the Indian stock market. And provide ticker in one word.",    
+        content: "Find me the ticker symbol for the company " + symbol + " in the Indian stock market. And provide ticker in one word and if the symbol is mahindra and mahindra then provide M&M.NS as ticker.",    
       },
     ],
     model: "openai/gpt-oss-20b",

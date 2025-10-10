@@ -9,7 +9,7 @@ const STARTING_CASH = 1000000;
 router.get('/', async (req, res) => {
     try {
         //fetch all the users and their positions
-        const users = await User.find({}, 'name cash');
+        const users = await User.find({}, 'name email cash');
         const positions = await Position.find({});
 
         //Group positions by user for easier access
@@ -41,6 +41,7 @@ router.get('/', async (req, res) => {
             const percentageGain = ((totalPortfolioValue - STARTING_CASH) / STARTING_CASH) * 100;
 
             leaderboardData.push({
+                email: user.email,
                 name: user.name,
                 portfolioValue: totalPortfolioValue,
                 percentageGain: parseFloat(percentageGain.toFixed(2)) // Round to 2 decimal places

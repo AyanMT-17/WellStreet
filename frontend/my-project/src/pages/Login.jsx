@@ -24,11 +24,13 @@ export default function WellStreetLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-200 via-yellow-100 to-orange-50">
+    // THEME UPDATE: Background changed from a gradient to a solid light gray.
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-6">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+          {/* THEME UPDATE: Logo icon background changed to dark gray for consistency. */}
+          <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">W</span>
           </div>
           <span className="text-2xl font-semibold text-gray-800">WellStreet</span>
@@ -39,16 +41,18 @@ export default function WellStreetLogin() {
       <div className="flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-md">
           {/* Login Card */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20">
+          {/* THEME UPDATE: Card style changed to a solid white with a border and subtle shadow. */}
+          <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              {/* THEME UPDATE: Main logo icon on card updated. */}
+              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <span className="text-white font-bold text-2xl">W</span>
               </div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome to WellStreet</h1>
               <p className="text-gray-600">Sign in to track your investments and performance</p>
             </div>
 
-            {/* Google OAuth Button */}
+            {/* Google OAuth Button (style is already neutral and looks good) */}
             <button
               onClick={handleGoogleLogin}
               className="w-full bg-white border border-gray-300 rounded-xl px-6 py-4 flex items-center justify-center space-x-3 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md group"
@@ -79,24 +83,27 @@ export default function WellStreetLogin() {
               <p className="text-sm text-gray-500 text-center mb-4">What you'll get access to:</p>
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* THEME UPDATE: Icon background and color changed to gray. */}
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
                   <span className="text-gray-700 text-sm">Portfolio tracking & analytics</span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* THEME UPDATE: Icon background and color changed to gray. */}
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>
                   <span className="text-gray-700 text-sm">Real-time P&L monitoring</span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* THEME UPDATE: Icon background and color changed to gray. */}
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
                   </div>
@@ -110,11 +117,12 @@ export default function WellStreetLogin() {
           <div className="text-center mt-6">
             <p className="text-sm text-gray-500">
               By signing in, you agree to our{' '}
-              <a href="#" className="text-orange-600 hover:text-orange-700 underline">
+              {/* THEME UPDATE: Link color changed to a neutral gray. */}
+              <a href="#" className="text-gray-700 hover:text-gray-900 underline">
                 Terms of Service
               </a>{' '}
               and{' '}
-              <a href="#" className="text-orange-600 hover:text-orange-700 underline">
+              <a href="#" className="text-gray-700 hover:text-gray-900 underline">
                 Privacy Policy
               </a>
             </p>
