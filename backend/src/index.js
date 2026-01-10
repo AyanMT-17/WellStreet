@@ -35,29 +35,57 @@ const wss = new WebSocketServer({ server });
 const clients = new Map();
 const symbolCache = new Map();
 
+// Helper function to delay execution
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function updateRealPrices() {
-    const activeSubscriptions = new Set();
-    clients.forEach(client => {
-        client.subscriptions.forEach(sub => activeSubscriptions.add(sub));
-    });
+  const activeSubscriptions = new Set();
+  clients.forEach(client => {
+    client.subscriptions.forEach(sub => activeSubscriptions.add(sub));
+  });
 
-    if (activeSubscriptions.size === 0) return;
+  if (activeSubscriptions.size === 0) return;
 
-    console.log('Fetching real prices for active symbols:', Array.from(activeSubscriptions));
-    for (const symbol of activeSubscriptions) {
+  console.log('Fetching real prices for active symbols:', Array.from(activeSubscriptions));
+
+  // Process symbols sequentially with delay to avoid rate limiting
+  const symbolsArray = Array.from(activeSubscriptions);
+  for (let i = 0; i < symbolsArray.length; i++) {
+    const symbol = symbolsArray[i];
     try {
       // If symbol already ends with .NS (case-insensitive), don't append it again
-      const ticker = symbol.toUpperCase().endsWith('.NS') ? symbol : `${symbol}.NS`;
+      const ticker = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase() : `${symbol.toUpperCase()}.NS`;
       const quote = await yahooFinance.quote(ticker);
-            if (quote && quote.regularMarketPrice) {
-                symbolCache.set(symbol, quote.regularMarketPrice);
-            }
-            
-        } catch (err) {
-            console.error(`Failed to fetch price for ${symbol}:`, err.message);
+      if (quote && quote.regularMarketPrice) {
+        symbolCache.set(symbol, quote.regularMarketPrice);
+      }
+    } catch (err) {
+      // Only log non-rate-limit errors at error level
+      if (err.message?.includes('Too Many Requests') || err.message?.includes('429')) {
+        console.log(`Rate limited for ${symbol}, trying database fallback`);
+      } else {
+        console.error(`Failed to fetch price for ${symbol}:`, err.message);
+      }
+
+      // FALLBACK: Try to get last close price from database
+      try {
+        const { default: OHLC } = await import('./models/OHLC.js');
+        const ticker = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase() : `${symbol.toUpperCase()}.NS`;
+        const latestOhlc = await OHLC.findOne({ symbol: ticker }).sort({ timestamp: -1 });
+        if (latestOhlc && latestOhlc.close) {
+          console.log(`Using database fallback price for ${symbol}: ${latestOhlc.close}`);
+          symbolCache.set(symbol, latestOhlc.close);
         }
+      } catch (dbErr) {
+        console.error(`Database fallback also failed for ${symbol}:`, dbErr.message);
+      }
     }
+
+    // Add delay between requests to avoid rate limiting (1.5 seconds)
+    if (i < symbolsArray.length - 1) {
+      await delay(1500);
+    }
+  }
 }
 
 
@@ -66,25 +94,25 @@ wss.on('connection', (ws, req) => {
   console.log('Client connected to WebSocket');
   const clientId = Date.now();
   clients.set(clientId, { connection: ws, subscriptions: new Set() });
-  
-  ws.on('message', (rawMessage) => {
-  try {
-    const message = JSON.parse(rawMessage);
-    const clientData = clients.get(clientId);
 
-    if(message.action === 'subscribe' && Array.isArray(message.symbols)) {
-      message.symbols.forEach(symbol => clientData.subscriptions.add(symbol.toUpperCase()));
-      console.log(`Client ${clientId} subscribed to:`, Array.from(clientData.subscriptions));
-      updateRealPrices();
+  ws.on('message', (rawMessage) => {
+    try {
+      const message = JSON.parse(rawMessage);
+      const clientData = clients.get(clientId);
+
+      if (message.action === 'subscribe' && Array.isArray(message.symbols)) {
+        message.symbols.forEach(symbol => clientData.subscriptions.add(symbol.toUpperCase()));
+        console.log(`Client ${clientId} subscribed to:`, Array.from(clientData.subscriptions));
+        updateRealPrices();
+      }
+      else if (message.action === 'unsubscribe' && Array.isArray(message.symbols)) {
+        message.symbols.forEach(symbol => clientData.subscriptions.delete(symbol.toUpperCase()));
+      }
+    } catch (err) {
+      console.error('Error processing message:', err);
+      ws.send(JSON.stringify({ error: 'Invalid message format' }));
     }
-    else if(message.action === 'unsubscribe' && Array.isArray(message.symbols)) {
-    message.symbols.forEach(symbol => clientData.subscriptions.delete(symbol.toUpperCase()));
-    }
-  }catch(err) {
-    console.error('Error processing message:', err);
-  ws.send(JSON.stringify({ error: 'Invalid message format' }));
-  }
-});
+  });
 
   ws.on('close', () => {
     console.log('Client disconnected from WebSocket');
@@ -95,31 +123,36 @@ wss.on('connection', (ws, req) => {
 
 
 function broadcastPrices() {
-    const updates = [];
+  const updates = [];
 
-    
-    symbolCache.forEach((basePrice, symbol) => {
-        // Simulate a small fluctuation (e.g., +/- 0.05%)
-        const fluctuation = (Math.random() - 0.5) * 0.001; 
-        const newPrice = basePrice * (1 + fluctuation);
-        
-        updates.push({
-            symbol: `${symbol}.NS`,
-            price: parseFloat(newPrice.toFixed(2)),
-            timestamp: Date.now()
-        });
-    });
+  symbolCache.forEach((basePrice, symbol) => {
+    // Simulate a small fluctuation (e.g., +/- 0.05%)
+    const fluctuation = (Math.random() - 0.5) * 0.001;
+    const newPrice = basePrice * (1 + fluctuation);
 
-    if (updates.length === 0) return;
-    
-    const payload = JSON.stringify({ event: 'price-update', ticks: updates });
-    
-    // Send the updates to all connected clients
-    clients.forEach(client => {
-        if (client.connection.readyState === client.connection.OPEN) {
-            client.connection.send(payload);
-        }
+    // Don't add .NS if it already has it
+    const formattedSymbol = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase() : `${symbol.toUpperCase()}.NS`;
+
+    updates.push({
+      symbol: formattedSymbol,
+      price: parseFloat(newPrice.toFixed(2)),
+      timestamp: Date.now()
     });
+  });
+
+  if (updates.length === 0) {
+    // If cache is empty, nothing to broadcast
+    return;
+  }
+
+  const payload = JSON.stringify({ event: 'price-update', ticks: updates });
+
+  // Send the updates to all connected clients
+  clients.forEach(client => {
+    if (client.connection.readyState === client.connection.OPEN) {
+      client.connection.send(payload);
+    }
+  });
 }
 setInterval(broadcastPrices, 2000);
 setInterval(updateRealPrices, 2000000);
@@ -177,8 +210,8 @@ app.get("/profile", (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    
+
+
     res.json({
       name: decoded.name,
       email: decoded.email,
