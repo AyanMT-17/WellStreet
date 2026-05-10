@@ -25,15 +25,16 @@ router.get(
     );
 
     // Set cookie
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
-      httpOnly: false,           // frontend can read if needed
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      httpOnly: true, // Increased security
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
     // Redirect to frontend
-    res.redirect("http://localhost:5173/");
+    res.redirect(process.env.FRONTEND_URL || "http://localhost:5173/");
   }
 );
 
