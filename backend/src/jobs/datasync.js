@@ -1,20 +1,20 @@
 // In jobs/dataSync.js
 import cron from 'node-cron';
-import yahooFinance from 'yahoo-finance2';
+import { yahooService } from '../services/yahooFinanceService.js';
 import OHLC from '../models/OHLC.js';
 
-// A list of important NIFTY 50 stocks to track
+// A list of important US stocks to track (Top ~100)
 const SYMBOLS_TO_TRACK = [
-    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS',
-    'BHARTIARTL.NS', 'HINDUNILVR.NS', 'SBIN.NS', 'ITC.NS', 'LT.NS',
-    'BAJFINANCE.NS', 'HCLTECH.NS', 'KOTAKBANK.NS', 'AXISBANK.NS', 'MARUTI.NS',
-    'ASIANPAINT.NS', 'TATASTEEL.NS', 'TITAN.NS', 'SUNPHARMA.NS', 'ULTRACEMCO.NS',
-    'WIPRO.NS', 'TATAMOTORS.NS', 'ADANIENT.NS', 'NESTLEIND.NS', 'M&M.NS',
-    'POWERGRID.NS', 'BAJAJFINSV.NS', 'NTPC.NS', 'JSWSTEEL.NS', 'LTIM.NS',
-    'HDFCLIFE.NS', 'DRREDDY.NS', 'ADANIPORTS.NS', 'HINDALCO.NS', 'TATACONSUM.NS',
-    'CIPLA.NS', 'GRASIM.NS', 'COALINDIA.NS', 'INDUSINDBK.NS', 'BRITANNIA.NS',
-    'EICHERMOT.NS', 'SBILIFE.NS', 'HEROMOTOCO.NS', 'DIVISLAB.NS', 'ONGC.NS',
-    'APOLLOHOSP.NS', 'TECHM.NS', 'BPCL.NS', 'SHRIRAMFIN.NS', 'BAJAJ-AUTO.NS'
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'BRK-B', 'JPM', 'V',
+    'UNH', 'JNJ', 'XOM', 'MA', 'PG', 'AVGO', 'HD', 'CVX', 'MRK', 'ABBV',
+    'COST', 'PEP', 'KO', 'TMO', 'WMT', 'MCD', 'PFE', 'BAC', 'CRM', 'ADBE',
+    'LIN', 'ACN', 'CSCO', 'ABT', 'ORCL', 'DIS', 'AMD', 'TXN', 'PM', 'VZ',
+    'NEE', 'AMGN', 'NKE', 'HON', 'IBM', 'RTX', 'UPS', 'MS', 'LOW', 'BMY',
+    'INTC', 'QCOM', 'CAT', 'GE', 'INTU', 'DE', 'CVS', 'SPGI', 'PLD', 'GS',
+    'ISRG', 'AMT', 'BKNG', 'AMAT', 'BLK', 'MDT', 'TJX', 'ADI', 'MDLZ', 'SYK',
+    'ADP', 'MMC', 'VRTX', 'REGN', 'ZTS', 'LLY', 'MO', 'LMT', 'CB', 'GILD',
+    'CI', 'T', 'ELV', 'BAX', 'BSX', 'MU', 'NOW', 'LRCX', 'FISV', 'PANW',
+    'SNPS', 'CDNS', 'KLAC', 'APH', 'EQIX', 'SHW', 'PGR'
 ];
 
 const syncMarketData = async () => {
@@ -22,7 +22,7 @@ const syncMarketData = async () => {
     
     for (const symbol of SYMBOLS_TO_TRACK) {
         try {
-            const result = await yahooFinance.historical(symbol, {
+            const result = await yahooService.getHistorical(symbol, {
                 period1: '2023-01-01', // Fetch data from a fixed start date
                 interval: '1d'
             });
@@ -31,7 +31,7 @@ const syncMarketData = async () => {
                 // 'Upsert' operation: Update if exists, insert if not.
                 // This prevents duplicate entries.
                 await OHLC.updateOne(
-                    { symbol: symbol},
+                    { symbol, timestamp: bar.date },
                     {
                         $set: {
                             timestamp: bar.date,

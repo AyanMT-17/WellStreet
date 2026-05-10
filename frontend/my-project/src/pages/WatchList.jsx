@@ -1,215 +1,166 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Plus, Loader2, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
-import Header from '../components/Header';
+import React, { useEffect, useRef, useState } from "react";
+import { Eye, Loader2, Plus, Trash2, TrendingDown, TrendingUp, Search } from "lucide-react";
+import { useAppSession } from "../context/appSession";
+import { useNavigate } from "react-router-dom";
 
-// Helper function to format currency
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 2,
-  }).format(value);
-};
+  }).format(Number(value || 0));
+
+import { getDisplayName } from '../utils/tickerMappings';
 
 export default function WatchlistPage() {
-  const [currentPage, setCurrentPage] = useState('watchlist');
-  const [watchlistData, setWatchlistData] = useState([]);
+  const { watchlist, dataLoading, updateWatchlist } = useAppSession();
+  const navigate = useNavigate();
   const [livePrices, setLivePrices] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [symbolToAdd, setsymbolToAdd] = useState('');
+  const [symbolToAdd, setSymbolToAdd] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-
-
-  const fetchWatchlist = async () => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/watchlist`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const data = await response.json();
-      const watchlist = data.watchlist || [];
-      setWatchlistData(watchlist);
-    } catch (err) {
-      console.error('Error fetching watchlist:', err);
-      setError('Could not fetch your watchlist.');
-    }
-  };
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const wsRef = useRef(null);
 
   useEffect(() => {
-    const fetchAndSubscribe = async () => {
-      setLoading(true);
-      await fetchWatchlist();
-      setLoading(false);
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    if (!watchlist?.length) {
+      setLivePrices({});
+      return undefined;
+    }
+
+    const symbols = watchlist.map((item) => item.symbol.toUpperCase());
+    const ws = new WebSocket(import.meta.env.VITE_WS_URL);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ action: "subscribe", symbols }));
     };
 
-    fetchAndSubscribe();
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.event !== "price-update" || !Array.isArray(payload.ticks)) {
+          return;
+        }
 
-    return () => { };
-  }, []);
+        setLivePrices((prev) => {
+          const next = { ...prev };
+          for (const tick of payload.ticks) {
+            const symbol = tick.symbol.toUpperCase();
+            next[symbol] = tick.price;
+          }
+          return next;
+        });
+      } catch (err) {
+        console.error("Failed to parse watchlist live price update:", err);
+      }
+    };
 
-  if (loading) {
+    return () => {
+      ws.close();
+    };
+  }, [watchlist]);
+
+  const handleAddStock = async (e) => {
+    e.preventDefault();
+    if (!symbolToAdd.trim()) return;
+    
+    setActionLoading(true);
+    await updateWatchlist(symbolToAdd.trim().toUpperCase(), 'add');
+    setSymbolToAdd("");
+    setActionLoading(false);
+  };
+
+  const handleDeleteStock = async (symbol) => {
+    setActionLoading(true);
+    await updateWatchlist(symbol, 'remove');
+    setActionLoading(false);
+  };
+
+  if (dataLoading.watchlist && !watchlist) {
     return (
-      <div className="min-h-screen bg-[#fccc07] flex items-center justify-center">
-        <div className="flex flex-col items-center bg-white p-8 border-4 border-black shadow-[8px_8px_0px_0px_#000]">
-          <Loader2 className="w-12 h-12 animate-spin mb-4 text-black" />
-          <p className="text-xl font-black uppercase tracking-widest text-black">Loading Watchlist...</p>
-        </div>
+      <div className="page-shell flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-stone-300 animate-spin" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#fccc07] flex items-center justify-center">
-        <div className="bg-white p-8 border-4 border-black shadow-[8px_8px_0px_0px_#000]">
-          <p className="text-xl font-black text-red-600 uppercase">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  async function handleaddstock(symbolToAdd) {
-    if (!symbolToAdd || !symbolToAdd.trim()) {
-      setMessage({ type: 'error', text: 'Please enter a valid symbol.' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-      return;
-    }
-
-    setActionLoading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/watchlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ symbol: symbolToAdd })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      setMessage({ type: 'success', text: `${symbolToAdd.toUpperCase()} added to watchlist!` });
-      setsymbolToAdd('');
-      await fetchWatchlist(); // Refresh the list
-    } catch (err) {
-      console.error('Failed to add stock to watchlist:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to add stock.' });
-    } finally {
-      setActionLoading(false);
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-    }
-  }
-
-  async function handleDeleteStock(symbol) {
-    setActionLoading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/watchlist/${encodeURIComponent(symbol)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete');
-      }
-
-      setMessage({ type: 'success', text: `${symbol.replace('.NS', '')} removed from watchlist!` });
-      await fetchWatchlist(); // Refresh the list
-    } catch (err) {
-      console.error('Failed to delete stock:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to delete stock.' });
-    } finally {
-      setActionLoading(false);
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-    }
-  }
   return (
-    <div className="min-h-screen bg-[#fccc07]">
-      <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-          <div>
-            <h1 className="text-4xl font-black text-black uppercase tracking-wider inline-block bg-white px-4 py-2 border-4 border-black shadow-[6px_6px_0px_0px_#000] lg:rotate-1">Watchlist</h1>
-            <p className="text-black font-bold mt-4 uppercase tracking-wide bg-white inline-block px-3 border-2 border-black lg:rotate-[-1deg]">Monitor your favorite stocks</p>
+    <div className="page-shell pb-24 md:pb-10">
+      <main className="page-container space-y-10">
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="max-w-xl">
+            <p className="hero-kicker">Terminal Watchlist</p>
+            <h1 className="hero-title">Tracked Assets</h1>
+            <p className="hero-copy mt-2">Monitor real-time US equity pricing and intraday volatility across your primary research targets.</p>
           </div>
-          <div className="flex items-center space-x-2 bg-white p-2 border-4 border-black shadow-[6px_6px_0px_0px_#000]">
+
+          <form onSubmit={handleAddStock} className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <input
               type="text"
               value={symbolToAdd}
-              onChange={(e) => setsymbolToAdd(e.target.value)}
-              placeholder="ADD SYMBOL..."
-              className="px-3 py-2 border-3 border-black font-bold text-black uppercase placeholder-gray-500 focus:outline-none focus:bg-yellow-100 w-48"
+              onChange={(e) => setSymbolToAdd(e.target.value)}
+              placeholder="Enter Ticker (e.g. NVDA)"
+              className="bg-white border border-stone-200 px-4 py-2.5 outline-none focus:border-stone-900 transition-all text-sm font-medium min-w-[240px]"
             />
-            <button
-              className="bg-black text-white px-4 py-2 border-2 border-black font-black uppercase tracking-wider hover:bg-white hover:text-black transition-colors flex items-center shadow-[2px_2px_0px_0px_#888] disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => handleaddstock(symbolToAdd)}
-              disabled={actionLoading}>
-              {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-              <span className="ml-2 hidden sm:inline">{actionLoading ? 'ADDING...' : 'ADD'}</span>
+            <button type="submit" className="primary-button" disabled={actionLoading || !symbolToAdd.trim()}>
+              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Add Asset
             </button>
-          </div>
-        </div>
+          </form>
+        </section>
 
-        {/* Success/Error Message */}
-        {message.text && (
-          <div className={`mb-8 p-4 border-4 font-bold flex items-center uppercase shadow-[4px_4px_0px_0px_#000] ${message.type === 'success' ? 'bg-[#a3e635] border-black text-black' : 'bg-[#f87171] border-black text-black'}`}>
-            {message.text}
-          </div>
-        )}
-
-        {/* Conditional Rendering: Show table or empty state */}
-        {watchlistData.length > 0 ? (
-          // TABLE VIEW
-          <div className="bg-white border-4 border-black p-0 shadow-[12px_12px_0px_0px_#000]">
+        {watchlist?.length > 0 ? (
+          <section className="surface-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left border-collapse">
-                <thead className="text-xs text-white uppercase bg-black border-b-4 border-black">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Symbol</th>
-                    <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Current Price</th>
-                    <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Day's Change</th>
-                    <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Open Price</th>
-                    <th scope="col" className="px-6 py-4 font-black tracking-widest text-right">Actions</th>
+                    <th>Symbol</th>
+                    <th>Reference Price</th>
+                    <th>Current Market</th>
+                    <th>Intraday Delta</th>
+                    <th className="text-right">Manage</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y-2 divide-black">
-                  {watchlistData.map((item, index) => {
-                    const symbol = item.symbol.replace('.NS', '');
+                <tbody>
+                  {watchlist.map((item, index) => {
+                    const symbol = item.symbol;
                     const livePrice = livePrices[symbol] || item.openPrice;
                     const change = livePrice - item.openPrice;
-                    const changePercent = (change / item.openPrice) * 100;
+                    const changePercent = item.openPrice ? (change / item.openPrice) * 100 : 0;
                     const isPositive = change >= 0;
 
                     return (
-                      <tr key={index} className="bg-white hover:bg-yellow-50 transition-colors">
-                        <td className="px-6 py-5 font-black text-black border-r-2 border-black">{symbol}</td>
-                        <td className="px-6 py-5 font-bold text-black border-r-2 border-black">{formatCurrency(livePrice)}</td>
-                        <td className={`px-6 py-5 font-black border-r-2 border-black ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                          <div className='flex items-center'>
-                            {isPositive ? <TrendingUp size={18} className="mr-2" /> : <TrendingDown size={18} className="mr-2" />}
-                            {formatCurrency(change)} ({changePercent.toFixed(2)}%)
+                      <tr key={index} className="group hover:bg-stone-50/50 transition-colors">
+                        <td 
+                          className="font-bold text-stone-900 cursor-pointer hover:underline"
+                          onClick={() => navigate(`/Stockpage?symbol=${symbol}`)}
+                        >
+                          {getDisplayName(symbol)}
+                        </td>
+                        <td className="font-medium">{formatCurrency(item.openPrice)}</td>
+                        <td className="font-bold text-stone-900">{formatCurrency(livePrice)}</td>
+                        <td className={isPositive ? "text-green-600" : "text-red-600"}>
+                          <div className="flex items-center gap-2 font-bold">
+                            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            <span>
+                              {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
+                            </span>
                           </div>
                         </td>
-                        <td className="px-6 py-5 font-medium text-black border-r-2 border-black">{formatCurrency(item.openPrice)}</td>
-                        <td className="px-6 py-5 text-right">
+                        <td className="text-right">
                           <button
-                            className="text-black hover:text-red-600 transition-colors disabled:opacity-50 p-2 hover:bg-gray-100 border-2 border-transparent hover:border-black"
-                            onClick={() => handleDeleteStock(item.symbol || item)}
+                            type="button"
+                            className="inline-flex h-9 w-9 items-center justify-center border border-stone-200 bg-white text-stone-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 shadow-sm"
+                            onClick={() => handleDeleteStock(symbol)}
                             disabled={actionLoading}
                           >
-                            <Trash2 size={20} className="stroke-[2.5]" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>
@@ -218,20 +169,17 @@ export default function WatchlistPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
         ) : (
-          // EMPTY STATE VIEW
-          <div className="bg-white border-4 border-black p-12 shadow-[12px_12px_0px_0px_#000] text-center min-h-[50vh] flex flex-col items-center justify-center">
-            <div className="w-24 h-24 bg-black text-white rounded-none border-4 border-black flex items-center justify-center mb-8 shadow-[6px_6px_0px_0px_#888]">
-              <Eye className="w-12 h-12" />
+          <section className="surface-card flex min-h-[400px] flex-col items-center justify-center p-10 text-center border-dashed">
+            <div className="mb-6 flex h-16 w-16 items-center justify-center bg-stone-50 text-stone-300">
+              <Eye className="h-8 w-8" />
             </div>
-            <h3 className="text-3xl font-black text-black uppercase mb-4 tracking-wide">Your watchlist is empty</h3>
-            <p className="text-black font-medium mb-8 max-w-md text-lg">Add stocks to your watchlist to monitor their performance in real-time.</p>
-            <button className="bg-[#fccc07] text-black px-8 py-4 border-4 border-black font-black uppercase tracking-widest hover:bg-white transition-all shadow-[6px_6px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] flex items-center">
-              <Plus className="w-6 h-6 mr-3 stroke-[3]" />
-              Add Your First Stock
-            </button>
-          </div>
+            <h3 className="text-xl font-bold text-stone-900 uppercase tracking-widest">Empty Signal</h3>
+            <p className="mt-3 max-w-sm text-sm font-medium text-stone-500 leading-relaxed">
+              Your institutional watchlist is currently offline. Add US tickers to begin real-time surveillance.
+            </p>
+          </section>
         )}
       </main>
     </div>

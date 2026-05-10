@@ -1,7 +1,7 @@
 import express from 'express';
-import yahooFinance from 'yahoo-finance2';
 import User from '../models/User.js';
 import Position from '../models/Positions.js';
+import { yahooService } from '../services/yahooFinanceService.js';
 
 const router = express.Router();
 const STARTING_CASH = 1000000;
@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
 
             for (const pos of userPositions) {
                 try {
-                    const quote = await yahooFinance.quote(pos.symbol);
+                    const quote = await yahooService.getQuote(pos.symbol);
                     holdingsValue += quote.regularMarketPrice * pos.quantity;
                 } catch (priceError) {
                     

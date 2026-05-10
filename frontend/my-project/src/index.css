@@ -2,16 +2,73 @@
 
 @layer base {
   body {
-    background-color: #fccc07; /* Bright yellow background for distinct brutalist look */
-    color: #1a1a1a;
+    background-color: #fafaf9; /* Stone-50 warm off-white */
+    color: #1c1917; /* Stone-900 */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
 
-@layer utilities {
-  .neo-brutal-shadow {
-    box-shadow: 4px 4px 0px 0px #000;
+@layer components {
+  .primary-button {
+    @apply inline-flex items-center justify-center bg-stone-900 text-stone-50 px-6 py-2.5 text-sm font-bold uppercase tracking-widest transition-all hover:bg-stone-800 disabled:opacity-50;
   }
-  .neo-brutal-border {
-    border: 3px solid #000;
+  
+  .subtle-button {
+    @apply inline-flex items-center justify-center border border-stone-200 bg-white text-stone-600 px-6 py-2.5 text-sm font-bold uppercase tracking-widest transition-all hover:bg-stone-50 hover:text-stone-900 disabled:opacity-50;
+  }
+
+  .data-card {
+    @apply bg-white border border-stone-200 p-6 shadow-sm;
+  }
+
+  /* Structural UI Classes */
+  .page-shell {
+    @apply min-h-screen bg-stone-50;
+  }
+
+  .page-container {
+    @apply mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8;
+  }
+
+  .surface-card {
+    @apply bg-white border border-stone-200 shadow-sm;
+  }
+
+  .surface-muted {
+    @apply bg-stone-50 border border-stone-100;
+  }
+
+  /* Typography */
+  .hero-kicker {
+    @apply text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400;
+  }
+
+  .hero-title {
+    @apply text-3xl font-bold tracking-tight text-stone-900;
+  }
+
+  .hero-copy {
+    @apply text-sm font-medium leading-relaxed text-stone-500;
+  }
+
+  .metric-label {
+    @apply text-[10px] font-bold uppercase tracking-widest text-stone-400;
+  }
+
+  /* Data Table */
+  .data-table {
+    @apply w-full text-left text-sm;
+  }
+
+  .data-table thead th {
+    @apply border-b border-stone-200 bg-stone-50/50 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-stone-400;
+  }
+
+  .data-table tbody td {
+    @apply border-b border-stone-100 px-4 py-4 text-stone-600;
+  }
+
+  .data-table tbody tr:last-child td {
+    @apply border-b-0;
   }
 }
