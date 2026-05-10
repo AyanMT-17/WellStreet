@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ShoppingCart } from 'lucide-react';
+import { ChevronDown, ShoppingCart, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 
 
@@ -12,33 +12,70 @@ export default function OrdersPage() {
     orderType: 'Market Order',
     side: 'Buy'
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [orderMessage, setOrderMessage] = useState({ type: '', text: '' });
 
   const orderTypes = ['Market Order', 'Limit Order', 'Stop Order', 'Stop Limit Order'];
   const sides = ['Buy', 'Sell'];
 
   const handleInputChange = (field, value) => {
     setOrderForm(prev => ({ ...prev, [field]: value }));
+    // Clear validation error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!orderForm.symbol || !orderForm.symbol.trim()) {
+      errors.symbol = 'Stock symbol is required';
+    }
+    if (!orderForm.quantity || isNaN(orderForm.quantity) || parseInt(orderForm.quantity) <= 0) {
+      errors.quantity = 'Please enter a valid quantity (positive number)';
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handlePlaceOrder = async () => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/portfolio/buy`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', body: JSON.stringify(
-        {
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    setOrderMessage({ type: '', text: '' });
+
+    try {
+      const endpoint = orderForm.side === 'Sell' ? 'sell' : 'buy';
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/portfolio/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
           symbol: orderForm.symbol.toUpperCase() + '.NS',
           quantity: parseInt(orderForm.quantity),
           orderType: orderForm.orderType.toUpperCase(),
+        })
+      });
 
-        }
-      )
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      alert(`Error: ${errorData.message}`);
-      return;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to place order');
+      }
+
+      const data = await response.json();
+      setOrderMessage({
+        type: 'success',
+        text: `${orderForm.side} order for ${orderForm.quantity} shares of ${orderForm.symbol.toUpperCase()} placed successfully!`
+      });
+      // Reset form after successful order
+      setOrderForm(prev => ({ ...prev, symbol: '', quantity: '' }));
+    } catch (err) {
+      setOrderMessage({ type: 'error', text: err.message || 'Failed to place order' });
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => setOrderMessage({ type: '', text: '' }), 5000);
     }
-    const data = await response.json();
-    alert(`Order placed successfully! Order ID: ${data.orderId || 'N/A'}`);
   }
 
 
@@ -50,7 +87,7 @@ export default function OrdersPage() {
     if (activeTab === 'order-history') {
       setOrderHistoryLoading(true);
       setOrderHistoryError(null);
-     
+
       fetch(`${import.meta.env.VITE_API_URL}/orders`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -68,105 +105,101 @@ export default function OrdersPage() {
           setOrderHistoryError('Failed to fetch order history');
           setOrderHistoryLoading(false);
         });
-        console.log('Fetching order history...');
+      console.log('Fetching order history...');
     }
   }, [activeTab]);
 
-    // Here you would typically make an API call to place the order
-
-
   return (
-    // THEME UPDATE: Main background color changed to light gray
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fccc07]">
       <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Page Header */}
-        <div className="mb-8">
-          {/* THEME UPDATE: Header text changed to solid gray */}
-          <h1 className="text-3xl font-bold text-gray-800">Orders</h1>
-          <p className="text-gray-500 mt-2">Place new orders and track your trading activity</p>
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-black text-black uppercase tracking-widest bg-white inline-block px-6 py-2 border-4 border-black shadow-[4px_4px_0px_0px_#000] rotate-1">Orders</h1>
+          <p className="text-black font-bold mt-4 uppercase tracking-wider bg-white inline-block px-3 border-2 border-black ml-4 rotate-[-1deg]">Place & Track Trades</p>
         </div>
 
         {/* Tabs */}
-        <div className="mb-8">
-          {/* THEME UPDATE: Tab border and text colors updated to gray theme */}
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('place-order')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'place-order'
-                    ? 'border-gray-800 text-gray-800'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+        <div className="mb-8 flex justify-center">
+          <div className="flex space-x-4 bg-white p-2 border-4 border-black shadow-[6px_6px_0px_0px_#000]">
+            <button
+              onClick={() => setActiveTab('place-order')}
+              className={`py-3 px-8 font-black text-sm uppercase tracking-wider border-2 transition-all duration-200 ${activeTab === 'place-order'
+                ? 'bg-black text-white border-black shadow-[2px_2px_0px_0px_#888]'
+                : 'bg-white text-black border-transparent hover:border-black hover:bg-gray-100'
                 }`}
-              >
-                Place Order
-              </button>
-              <button
-                onClick={() => setActiveTab('order-history')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'order-history'
-                    ? 'border-gray-800 text-gray-800'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            >
+              Place Order
+            </button>
+            <button
+              onClick={() => setActiveTab('order-history')}
+              className={`py-3 px-8 font-black text-sm uppercase tracking-wider border-2 transition-all duration-200 ${activeTab === 'order-history'
+                ? 'bg-black text-white border-black shadow-[2px_2px_0px_0px_#888]'
+                : 'bg-white text-black border-transparent hover:border-black hover:bg-gray-100'
                 }`}
-              >
-                Order History
-              </button>
-            </nav>
+            >
+              Order History
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'place-order' && (
-          // THEME UPDATE: Card styles updated for consistency
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center mb-4">
-              {/* THEME UPDATE: Icon background changed to light gray */}
-              <div className="w-8 h-8 bg-gray-100 rounded-md flex items-center justify-center">
-                <ShoppingCart className="w-5 h-5 text-gray-500" />
+          <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] max-w-2xl mx-auto">
+            <div className="flex items-center mb-8 border-b-4 border-black pb-4">
+              <div className="w-12 h-12 bg-black text-white flex items-center justify-center border-2 border-black mr-4 shadow-[4px_4px_0px_0px_#888]">
+                <ShoppingCart className="w-6 h-6" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-700 ml-3">Place New Order</h2>
+              <h2 className="text-2xl font-black text-black uppercase tracking-wide">Place New Order</h2>
             </div>
-            <p className="text-gray-500 text-sm mb-6">Enter your order details below</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Order Message */}
+            {orderMessage.text && (
+              <div className={`mb-8 p-4 border-4 font-bold flex items-center shadow-[4px_4px_0px_0px_#000] ${orderMessage.type === 'success' ? 'bg-[#a3e635] border-black text-black' : 'bg-[#f87171] border-black text-black'}`}>
+                {orderMessage.type === 'success' ? <CheckCircle className="w-6 h-6 mr-3 stroke-[3]" /> : <AlertCircle className="w-6 h-6 mr-3 stroke-[3]" />}
+                {orderMessage.text}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Stock Symbol */}
               <div>
-                {/* THEME UPDATE: Form label color changed */}
-                <label htmlFor="symbol" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="symbol" className="block text-sm font-black text-black uppercase mb-3 tracking-wider">
                   Stock Symbol
                 </label>
-                {/* THEME UPDATE: Form input styles changed */}
                 <input
                   type="text"
                   id="symbol"
-                  placeholder="E.G, AAPL"
+                  placeholder="E.G, RELIANCE"
                   value={orderForm.symbol}
                   onChange={(e) => handleInputChange('symbol', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-800 focus:border-gray-800 outline-none bg-white"
+                  className={`w-full px-4 py-3 border-3 font-bold outline-none transition-all ${validationErrors.symbol ? 'border-red-600 bg-red-50' : 'border-black focus:shadow-[4px_4px_0px_0px_#000] focus:-translate-y-1 focus:-translate-x-1'}`}
                 />
+                {validationErrors.symbol && <p className="text-red-600 font-bold text-xs mt-2 uppercase">{validationErrors.symbol}</p>}
               </div>
 
               {/* Quantity */}
               <div>
-                <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="quantity" className="block text-sm font-black text-black uppercase mb-3 tracking-wider">
                   Quantity
                 </label>
                 <input
                   type="number"
                   id="quantity"
                   placeholder="Number of shares"
+                  min="1"
                   value={orderForm.quantity}
                   onChange={(e) => handleInputChange('quantity', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-800 focus:border-gray-800 outline-none bg-white"
+                  className={`w-full px-4 py-3 border-3 font-bold outline-none transition-all ${validationErrors.quantity ? 'border-red-600 bg-red-50' : 'border-black focus:shadow-[4px_4px_0px_0px_#000] focus:-translate-y-1 focus:-translate-x-1'}`}
                 />
+                {validationErrors.quantity && <p className="text-red-600 font-bold text-xs mt-2 uppercase">{validationErrors.quantity}</p>}
               </div>
 
               {/* Order Type */}
               <div>
-                <label htmlFor="orderType" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="orderType" className="block text-sm font-black text-black uppercase mb-3 tracking-wider">
                   Order Type
                 </label>
                 <div className="relative">
@@ -174,7 +207,7 @@ export default function OrdersPage() {
                     id="orderType"
                     value={orderForm.orderType}
                     onChange={(e) => handleInputChange('orderType', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-800 focus:border-gray-800 outline-none appearance-none bg-white"
+                    className="w-full px-4 py-3 border-3 border-black font-bold outline-none appearance-none bg-white focus:shadow-[4px_4px_0px_0px_#000] focus:-translate-y-1 focus:-translate-x-1 transition-all"
                   >
                     {orderTypes.map((type) => (
                       <option key={type} value={type}>
@@ -182,14 +215,13 @@ export default function OrdersPage() {
                       </option>
                     ))}
                   </select>
-                  {/* THEME UPDATE: Dropdown arrow color changed */}
-                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-5 h-5 text-black absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none stroke-[3]" />
                 </div>
               </div>
 
               {/* Side */}
               <div>
-                <label htmlFor="side" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="side" className="block text-sm font-black text-black uppercase mb-3 tracking-wider">
                   Side
                 </label>
                 <div className="relative">
@@ -197,7 +229,7 @@ export default function OrdersPage() {
                     id="side"
                     value={orderForm.side}
                     onChange={(e) => handleInputChange('side', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-800 focus:border-gray-800 outline-none appearance-none bg-white"
+                    className="w-full px-4 py-3 border-3 border-black font-bold outline-none appearance-none bg-white focus:shadow-[4px_4px_0px_0px_#000] focus:-translate-y-1 focus:-translate-x-1 transition-all"
                   >
                     {sides.map((side) => (
                       <option key={side} value={side}>
@@ -205,75 +237,84 @@ export default function OrdersPage() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-5 h-5 text-black absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none stroke-[3]" />
                 </div>
               </div>
             </div>
 
             {/* Place Order Button */}
-            <div className="mt-8">
-              {/* THEME UPDATE: Button style changed to solid dark gray */}
+            <div className="mt-10">
               <button
                 type="button"
                 onClick={handlePlaceOrder}
-                className="w-full md:w-auto px-6 py-2 bg-gray-800 text-white rounded-md font-semibold shadow hover:bg-gray-900 transition-colors"
+                disabled={isSubmitting}
+                className="w-full py-4 bg-black text-white border-3 border-black font-black uppercase tracking-widest text-lg shadow-[6px_6px_0px_0px_#fff] hover:shadow-[2px_2px_0px_0px_#fff] hover:translate-x-[4px] hover:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
               >
-                Place Order
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                    PROCESSING...
+                  </>
+                ) : (
+                  'CONFIRM ORDER'
+                )}
               </button>
             </div>
           </div>
         )}
 
         {activeTab === 'order-history' && (
-          // THEME UPDATE: Card styles updated
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">Order History</h2>
+          <div className="bg-white border-4 border-black p-0 shadow-[12px_12px_0px_0px_#000]">
+            <div className="p-6 border-b-4 border-black bg-gray-50">
+              <h2 className="text-2xl font-black text-black uppercase tracking-wide">Transaction History</h2>
+            </div>
+
             {orderHistoryLoading ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="w-8 h-8 text-gray-400" />
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-black text-white flex items-center justify-center mx-auto mb-6 border-4 border-black animate-spin">
+                  <div className="w-8 h-8 bg-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Loading...</h3>
+                <h3 className="text-xl font-black text-black uppercase tracking-widest">LOADING DATA...</h3>
               </div>
             ) : orderHistoryError ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="w-8 h-8 text-gray-400" />
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-red-100 flex items-center justify-center mx-auto mb-6 border-4 border-black">
+                  <AlertCircle className="w-10 h-10 text-black" />
                 </div>
-                <h3 className="text-lg font-semibold text-red-600 mb-2">{orderHistoryError}</h3>
+                <h3 className="text-xl font-bold text-red-600 uppercase">{orderHistoryError}</h3>
               </div>
             ) : orderHistory.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="w-8 h-8 text-gray-400" />
+              <div className="text-center py-20">
+                <div className="w-24 h-24 bg-gray-200 flex items-center justify-center mx-auto mb-6 border-4 border-black">
+                  <ShoppingCart className="w-10 h-10 text-gray-500" />
                 </div>
-                {/* THEME UPDATE: Empty state text colors changed */}
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">No orders found</h3>
-                <p className="text-gray-500">Your order history will appear here once you start trading.</p>
+                <h3 className="text-2xl font-black text-black uppercase mb-2">NO ORDERS YET</h3>
+                <p className="text-black font-medium">Start trading to build your history.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
+                <table className="min-w-full divide-y-4 divide-black">
+                  <thead className="bg-black text-white">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-4 text-left text-sm font-black uppercase tracking-wider">Symbol</th>
+                      <th className="px-6 py-4 text-left text-sm font-black uppercase tracking-wider">Qty</th>
+                      <th className="px-6 py-4 text-left text-sm font-black uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-black uppercase tracking-wider">Side</th>
+                      <th className="px-6 py-4 text-left text-sm font-black uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-sm font-black uppercase tracking-wider">Date</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y-2 divide-black">
                     {orderHistory.map((order, idx) => (
-                      <tr key={idx}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.symbol}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.quantity}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.orderType}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.side}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.status}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.date}</td>
-
+                      <tr key={idx} className="hover:bg-yellow-50 transition-colors">
+                        <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-black border-r-2 border-black">{order.symbol}</td>
+                        <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-black border-r-2 border-black">{order.quantity}</td>
+                        <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black">{order.orderType}</td>
+                        <td className={`px-6 py-5 whitespace-nowrap text-sm font-black uppercase border-r-2 border-black ${order.side === 'Buy' ? 'text-green-600' : 'text-red-600'}`}>{order.side}</td>
+                        <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-black border-r-2 border-black">
+                          <span className="px-3 py-1 bg-gray-200 border-2 border-black text-xs uppercase">{order.status}</span>
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-black">{order.date}</td>
                       </tr>
                     ))}
                   </tbody>

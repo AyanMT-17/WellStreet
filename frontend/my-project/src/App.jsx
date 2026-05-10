@@ -6,6 +6,7 @@ import PortfolioPage from "./pages/Portfolio";
 import LeaderboardPage from "./pages/LeaderBoard";
 import Login from "./pages/Login"; // Your login component
 import StockDetailPage from "./pages/stockdetail";
+import WatchlistPage from "./pages/WatchList";
 // ---------------- Protected Route ----------------
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
@@ -37,12 +38,12 @@ const ProtectedRoute = ({ children }) => {
 
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-200 via-yellow-100 to-orange-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold text-2xl">W</span>
+      <div className="min-h-screen flex items-center justify-center bg-[#fccc07]">
+        <div className="text-center p-8 bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000]">
+          <div className="w-16 h-16 bg-black flex items-center justify-center mx-auto mb-4 border-2 border-white animate-bounce">
+            <span className="text-white font-black text-4xl">W</span>
           </div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-black font-bold uppercase tracking-widest text-lg">Loading...</p>
         </div>
       </div>
     );
@@ -74,12 +75,12 @@ const PublicRoute = ({ children }) => {
 
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-200 via-yellow-100 to-orange-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold text-2xl">W</span>
+      <div className="min-h-screen flex items-center justify-center bg-[#fccc07]">
+        <div className="text-center p-8 bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000]">
+          <div className="w-16 h-16 bg-black flex items-center justify-center mx-auto mb-4 border-2 border-white animate-bounce">
+            <span className="text-white font-black text-4xl">W</span>
           </div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-black font-bold uppercase tracking-widest text-lg">Loading...</p>
         </div>
       </div>
     );
@@ -135,6 +136,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <StockDetailPage />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: "/watchlist",
+    element: (
+      <ProtectedRoute>
+        <WatchlistPage />
       </ProtectedRoute>
     )
   },

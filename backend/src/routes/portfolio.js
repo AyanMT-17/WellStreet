@@ -10,17 +10,17 @@ const router = express.Router();
 
 router.get("/", ensureAuth, async (req, res) => {
     try {
-      const positions = await Position.find({ user: req.user.id });
-      const user = await User.findById(req.user.id).select("cash");
-  
-      if (!user) return res.status(404).json({ message: "User not found" });
-  
-      res.json({ positions, cash: user.cash });
+        const positions = await Position.find({ user: req.user.id });
+        const user = await User.findById(req.user.id).select("cash");
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.json({ positions, cash: user.cash });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Server error while fetching portfolio." });
+        console.error(err);
+        res.status(500).json({ message: "Server error while fetching portfolio." });
     }
-  });
+});
 
 router.post('/buy', ensureAuth, async (req, res) => {
     const { symbol, quantity } = req.body;
@@ -31,18 +31,19 @@ router.post('/buy', ensureAuth, async (req, res) => {
     }
 
     try {
-        const ticker = `${symbol.toUpperCase()}`;
-        
-       const latestEntry = await OHLC.findOne({ symbol: ticker }).sort({ timestamp: -1 });
+        // Normalize symbol: ensure it ends with .NS (matching sell route behavior)
+        const ticker = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase() : `${symbol.toUpperCase()}.NS`;
 
-// Access the 'close' property from the found document
-const marketPrice = latestEntry ? latestEntry.close : null;
+        const latestEntry = await OHLC.findOne({ symbol: ticker }).sort({ timestamp: -1 });
 
-if (marketPrice !== null) {
-  console.log(`The latest market price for ${ticker} is: ${marketPrice}`);
-} else {
-  console.log(`No data found for ticker: ${ticker}`);
-}
+        // Access the 'close' property from the found document
+        const marketPrice = latestEntry ? latestEntry.close : null;
+
+        if (marketPrice !== null) {
+            console.log(`The latest market price for ${ticker} is: ${marketPrice}`);
+        } else {
+            console.log(`No data found for ticker: ${ticker}`);
+        }
 
         // The old, incorrect database query for price has been removed.
 
@@ -95,10 +96,10 @@ router.post('/sell', ensureAuth, async (req, res) => {
     const { symbol, quantity } = req.body;
     const userId = req.user.id;
 
-    if(!symbol || !quantity || quantity <= 0) {
+    if (!symbol || !quantity || quantity <= 0) {
         return res.status(400).json({ message: 'Valid symbol and quantity are required.' });
     }
-    try{
+    try {
         const ticker = `${symbol.toUpperCase()}.NS`;
 
         const position = await Position.findOne({ user: userId, symbol: ticker });

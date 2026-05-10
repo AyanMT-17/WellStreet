@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #fccc07; /* Bright yellow background for distinct brutalist look */
+    color: #1a1a1a;
+  }
+}
+
+@layer utilities {
+  .neo-brutal-shadow {
+    box-shadow: 4px 4px 0px 0px #000;
+  }
+  .neo-brutal-border {
+    border: 3px solid #000;
+  }
+}

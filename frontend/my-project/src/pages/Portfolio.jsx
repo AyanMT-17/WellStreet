@@ -30,26 +30,26 @@ export default function PortfolioPage() {
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        
+
         setPortfolio({
           cash: data.cash,
           positions: data.positions,
         });
 
-  // Normalize symbols to base form (remove .NS if present) and uppercase so keys match server-side cache
-  const symbolsToTrack = data.positions.map(p => p.symbol.replace(/\.NS$/i, '').toUpperCase());
+        // Normalize symbols to base form (remove .NS if present) and uppercase so keys match server-side cache
+        const symbolsToTrack = data.positions.map(p => p.symbol.replace(/\.NS$/i, '').toUpperCase());
         if (symbolsToTrack.length === 0) {
-            setLoading(false);
-            return;
+          setLoading(false);
+          return;
         }
 
         ws = new WebSocket(`${import.meta.env.VITE_WS_URL}`);
-        
+
         ws.onopen = () => {
           console.log('Portfolio WebSocket Connected');
           ws.send(JSON.stringify({
-              action: 'subscribe',
-              symbols: symbolsToTrack
+            action: 'subscribe',
+            symbols: symbolsToTrack
           }));
         };
 
@@ -57,14 +57,14 @@ export default function PortfolioPage() {
           const messageData = JSON.parse(event.data);
           if (messageData.event === 'price-update') {
             setLiveData(prevData => {
-                const newData = { ...prevData };
-                for (const tick of messageData.ticks) {
-                    // Server sends symbols like 'TCS.NS' — normalize to base symbol 'TCS' for keys
-                    const base = tick.symbol.replace(/\.NS$/i, '').toUpperCase();
-                    newData[base] = tick.price;
-                }
-                
-                return newData;
+              const newData = { ...prevData };
+              for (const tick of messageData.ticks) {
+                // Server sends symbols like 'TCS.NS' — normalize to base symbol 'TCS' for keys
+                const base = tick.symbol.replace(/\.NS$/i, '').toUpperCase();
+                newData[base] = tick.price;
+              }
+
+              return newData;
             });
           }
         };
@@ -80,9 +80,9 @@ export default function PortfolioPage() {
     fetchPortfolioData();
 
     return () => {
-        if (ws) {
-            ws.close();
-        }
+      if (ws) {
+        ws.close();
+      }
     };
   }, []);
 
@@ -99,11 +99,10 @@ export default function PortfolioPage() {
 
   if (loading) {
     return (
-      // THEME UPDATE: Loading state styles updated
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center text-gray-500">
-          <Loader2 className="w-12 h-12 animate-spin mb-4" />
-          <p className="text-lg font-semibold">Loading Portfolio...</p>
+      <div className="min-h-screen bg-[#fccc07] flex items-center justify-center">
+        <div className="flex flex-col items-center bg-white p-8 border-4 border-black shadow-[8px_8px_0px_0px_#000]">
+          <Loader2 className="w-12 h-12 animate-spin mb-4 text-black" />
+          <p className="text-xl font-black uppercase tracking-widest text-black">Loading Portfolio...</p>
         </div>
       </div>
     );
@@ -111,29 +110,29 @@ export default function PortfolioPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-lg text-red-600">{error}</p>
+      <div className="min-h-screen bg-[#fccc07] flex items-center justify-center">
+        <div className="bg-white p-8 border-4 border-black shadow-[8px_8px_0px_0px_#000]">
+          <p className="text-xl font-black text-red-600 uppercase">{error}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    // THEME UPDATE: Main background color changed
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fccc07]">
       <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Page Header */}
-        <div className="mb-8">
-          {/* THEME UPDATE: Header text changed to solid gray */}
-          <h1 className="text-3xl font-bold text-gray-800">
+        <div className="mb-10">
+          <h1 className="text-4xl font-black text-black uppercase tracking-wider inline-block bg-white px-4 py-1 border-4 border-black shadow-[6px_6px_0px_0px_#000]">
             Portfolio Overview
           </h1>
-          <p className="text-gray-500 mt-2">Your investment holdings and performance.</p>
+          <p className="text-black font-bold mt-4 uppercase tracking-wide bg-white inline-block px-3 border-2 border-black">Your investment holdings and performance.</p>
         </div>
 
         {/* Portfolio Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           <MetricCard
             title="Total Portfolio Value"
             value={formatCurrency(totalPortfolioValue)}
@@ -153,48 +152,45 @@ export default function PortfolioPage() {
         </div>
 
         {/* Detailed Positions Table */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center mb-6">
-            {/* THEME UPDATE: Header icon changed to neutral gray */}
-            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mr-4">
-              <BarChart3 className="w-6 h-6 text-gray-500" />
+        <div className="bg-white border-4 border-black p-0 shadow-[12px_12px_0px_0px_#000]">
+          <div className="flex items-center p-6 border-b-4 border-black bg-white">
+            <div className="w-12 h-12 border-2 border-black bg-black flex items-center justify-center mr-4 shadow-[4px_4px_0px_0px_#888]">
+              <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-700">
+              <h2 className="text-2xl font-black text-black uppercase tracking-wide">
                 Your Stock Positions
               </h2>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              {/* THEME UPDATE: Table header styles changed */}
-              <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead className="text-xs text-white uppercase bg-black border-b-4 border-black">
                 <tr>
-                  <th scope="col" className="px-6 py-3">Symbol</th>
-                  <th scope="col" className="px-6 py-3">Quantity</th>
-                  <th scope="col" className="px-6 py-3">Avg. Buy Price</th>
-                  <th scope="col" className="px-6 py-3">Current Price</th>
-                  <th scope="col" className="px-6 py-3">Current Value</th>
-                  <th scope="col" className="px-6 py-3">Unrealized P/L</th>
+                  <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Symbol</th>
+                  <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Quantity</th>
+                  <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Avg. Buy Price</th>
+                  <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Current Price</th>
+                  <th scope="col" className="px-6 py-4 font-black tracking-widest border-r-2 border-white/20">Current Value</th>
+                  <th scope="col" className="px-6 py-4 font-black tracking-widest">Unrealized P/L</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y-2 divide-black">
                 {portfolio.positions.map((pos, index) => {
-                  // Calculate row-specific values here
                   const baseSymbol = pos.symbol.replace(/\.NS$/i, '').toUpperCase();
                   const currentPrice = liveData[baseSymbol] || pos.averagePrice;
                   const marketValue = currentPrice * pos.quantity;
                   const unrealizedPL = marketValue - (pos.averagePrice * pos.quantity);
 
                   return (
-                    <tr key={index} className="bg-white border-b border-gray-200 hover:bg-gray-50">
-                      <td className="px-6 py-4 font-bold text-gray-900">{pos.symbol.replace(/\.NS$/i, '').toUpperCase()}</td>
-                      <td className="px-6 py-4 text-gray-700">{pos.quantity}</td>
-                      <td className="px-6 py-4 text-gray-700">{formatCurrency(pos.averagePrice)}</td>
-                      <td className="px-6 py-4 text-gray-700">{formatCurrency(currentPrice)}</td>
-                      <td className="px-6 py-4 font-semibold text-gray-800">{formatCurrency(marketValue)}</td>
-                      <td className={`px-6 py-4 font-semibold ${unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <tr key={index} className="bg-white hover:bg-yellow-50 transition-colors">
+                      <td className="px-6 py-5 font-black text-black border-r-2 border-black">{pos.symbol.replace(/\.NS$/i, '').toUpperCase()}</td>
+                      <td className="px-6 py-5 font-bold text-black border-r-2 border-black">{pos.quantity}</td>
+                      <td className="px-6 py-5 font-medium text-black border-r-2 border-black">{formatCurrency(pos.averagePrice)}</td>
+                      <td className="px-6 py-5 font-medium text-black border-r-2 border-black">{formatCurrency(currentPrice)}</td>
+                      <td className="px-6 py-5 font-black text-black border-r-2 border-black">{formatCurrency(marketValue)}</td>
+                      <td className={`px-6 py-5 font-black border-l-2 border-black ${unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {formatCurrency(unrealizedPL)}
                       </td>
                     </tr>
@@ -209,18 +205,16 @@ export default function PortfolioPage() {
   );
 }
 
-// THEME UPDATE: Reusable Metric Card component with new neutral styles
 const MetricCard = ({ title, value, icon: Icon, isPositive }) => (
-  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+  <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_#000] transition-all">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-        <span className={`text-2xl font-bold ${
-          isPositive === true ? 'text-green-600' : isPositive === false ? 'text-red-600' : 'text-gray-800'
-        }`}>{value}</span>
+        <p className="text-sm font-black text-black uppercase tracking-widest mb-2 border-b-2 border-black pb-1 inline-block">{title}</p>
+        <div className={`text-3xl font-black mt-2 ${isPositive === true ? 'text-green-600' : isPositive === false ? 'text-red-600' : 'text-black'
+          }`}>{value}</div>
       </div>
-      <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-        <Icon className="w-6 h-6 text-gray-500" />
+      <div className="w-14 h-14 border-3 border-black bg-white flex items-center justify-center shadow-[4px_4px_0px_0px_#000]">
+        <Icon className="w-8 h-8 text-black stroke-[2.5]" />
       </div>
     </div>
   </div>
